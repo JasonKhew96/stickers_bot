@@ -1,10 +1,10 @@
 package main
 
-import "fmt"
-
 func main() {
 	config, err := parseConfig()
-	fmt.Println(config, err)
+	if err != nil {
+		panic(err)
+	}
 
 	db, err := NewDatabase()
 	if err != nil {
