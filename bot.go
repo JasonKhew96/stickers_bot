@@ -50,7 +50,7 @@ func NewBot(config *Config, db *Database) (*StickerBot, error) {
 	err = updater.StartPolling(bot, &ext.PollingOpts{
 		DropPendingUpdates: true,
 		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
-			Timeout:        60,
+			Timeout:        59,
 			AllowedUpdates: []string{"message", "inline_query", "chosen_inline_result"},
 			RequestOpts: &gotgbot.RequestOpts{
 				Timeout: time.Second * 60,
