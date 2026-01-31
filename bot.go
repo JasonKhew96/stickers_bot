@@ -10,7 +10,6 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
-	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/choseninlineresult"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/inlinequery"
 	"github.com/pkg/errors"
 )
@@ -46,7 +45,7 @@ func NewBot(config *Config, db *Database) (*StickerBot, error) {
 	dispatcher.AddHandler(handlers.NewCommand("save", sb.commandSave))
 	dispatcher.AddHandler(handlers.NewCommand("remove", sb.commandRemove))
 	dispatcher.AddHandler(handlers.NewInlineQuery(inlinequery.All, sb.inlineQuery))
-	dispatcher.AddHandler(handlers.NewChosenInlineResult(choseninlineresult.All, sb.choosenInlineResult))
+	// dispatcher.AddHandler(handlers.NewChosenInlineResult(choseninlineresult.All, sb.choosenInlineResult))
 
 	err = updater.StartPolling(bot, &ext.PollingOpts{
 		DropPendingUpdates: true,
@@ -204,11 +203,11 @@ func (sb *StickerBot) inlineQuery(b *gotgbot.Bot, ctx *ext.Context) error {
 	return nil
 }
 
-func (sb *StickerBot) choosenInlineResult(b *gotgbot.Bot, ctx *ext.Context) error {
-	resultId := ctx.ChosenInlineResult.ResultId
-	id, err := strconv.ParseInt(resultId, 10, 64)
-	if err != nil {
-		return err
-	}
-	return sb.db.UpdateStickerUsage(id)
-}
+// func (sb *StickerBot) choosenInlineResult(b *gotgbot.Bot, ctx *ext.Context) error {
+// 	resultId := ctx.ChosenInlineResult.ResultId
+// 	id, err := strconv.ParseInt(resultId, 10, 64)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return sb.db.UpdateStickerUsage(id)
+// }
