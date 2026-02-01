@@ -92,6 +92,7 @@ func (sb *StickerBot) commandSave(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 
 	_, err := msg.Copy(b, sb.config.ChannelId, &gotgbot.CopyMessageOpts{
+		Caption: new(string),
 		ReplyMarkup: gotgbot.InlineKeyboardMarkup{InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 			{
 				{
