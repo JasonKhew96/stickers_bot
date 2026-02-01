@@ -152,7 +152,6 @@ func (sb *StickerBot) commandRemove(b *gotgbot.Bot, ctx *ext.Context) error {
 	} else if msg.Animation != nil {
 		fileId = msg.Animation.FileId
 	} else if msg.Photo != nil {
-		fmt.Println(msg.Photo)
 		fileId = msg.Photo[0].FileId
 	} else if msg.Video != nil {
 		fileId = msg.Video.FileId
@@ -185,7 +184,6 @@ func (sb *StickerBot) inlineQuery(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 	var answers []gotgbot.InlineQueryResult
 	for _, sticker := range stickers {
-		log.Println(sticker)
 		switch sticker.StickerType {
 		case "gif":
 			answers = append(answers, gotgbot.InlineQueryResultCachedGif{
