@@ -91,23 +91,6 @@ func (sb *StickerBot) commandSave(b *gotgbot.Bot, ctx *ext.Context) error {
 		return err
 	}
 
-	_, err := msg.Copy(b, sb.config.ChannelId, &gotgbot.CopyMessageOpts{
-		Caption: new(string),
-		ReplyMarkup: gotgbot.InlineKeyboardMarkup{InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
-			{
-				{
-					Text:         "Keywords",
-					CallbackData: "get_keywords",
-				},
-			},
-		}},
-	})
-	if err != nil {
-		log.Println(err)
-		_, err := ctx.EffectiveMessage.Reply(b, "Failed to save sticker", nil)
-		return err
-	}
-
 	var fileId string
 	var stickerType string
 	if msg.Sticker != nil {
@@ -124,12 +107,31 @@ func (sb *StickerBot) commandSave(b *gotgbot.Bot, ctx *ext.Context) error {
 		fileId = msg.Video.FileId
 		stickerType = "video"
 	}
-	err = sb.db.SaveSticker(fileId, stickerType, keywords)
+
+	err := sb.db.SaveSticker(fileId, stickerType, keywords)
 	if err != nil {
 		log.Println(err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Failed to save sticker", nil)
 		return err
 	}
+
+	_, err = msg.Copy(b, sb.config.ChannelId, &gotgbot.CopyMessageOpts{
+		Caption: new(string),
+		ReplyMarkup: gotgbot.InlineKeyboardMarkup{InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+			{
+				{
+					Text:         "Keywords",
+					CallbackData: "get_keywords",
+				},
+			},
+		}},
+	})
+	if err != nil {
+		log.Println(err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Failed to save sticker", nil)
+		return err
+	}
+
 	_, err = ctx.EffectiveMessage.Reply(b, "Sticker saved", nil)
 	return err
 }

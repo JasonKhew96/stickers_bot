@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/JasonKhew96/stickers_bot/models"
 	"github.com/aarondl/opt/omit"
+	"github.com/pkg/errors"
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/dialect/sqlite/im"
 	"github.com/stephenafamo/bob/dialect/sqlite/sm"
@@ -69,16 +71,18 @@ func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) er
 	s, err := models.Stickers.Insert(&models.StickerSetter{
 		FileID:      omit.From(fileId),
 		StickerType: omit.From(stickerType),
-	}, im.OnConflict("file_id").DoNothing()).One(d.ctx, d.db)
+		UpdatedAt:   omit.From(time.Now()),
+	}, im.OnConflict("file_id").DoUpdate(im.SetExcluded("updated_at"))).One(d.ctx, d.db)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "insert sticker failed")
 	}
 	for _, keyword := range keywords {
 		k, err := models.Keywords.Insert(&models.KeywordSetter{
-			Keyword: omit.From(keyword),
-		}, im.OnConflict("keyword").DoNothing()).One(d.ctx, d.db)
+			Keyword:   omit.From(keyword),
+			UpdatedAt: omit.From(time.Now()),
+		}, im.OnConflict("keyword").DoUpdate(im.SetExcluded("updated_at"))).One(d.ctx, d.db)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "insert keyword failed")
 		}
 		if s.ID == 0 || k.ID == 0 {
 			continue
@@ -86,9 +90,10 @@ func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) er
 		_, err = models.StickerKeywords.Insert(&models.StickerKeywordSetter{
 			StickerID: omit.From(s.ID),
 			KeywordID: omit.From(k.ID),
-		}, im.OnConflict("sticker_id", "keyword_id").DoNothing()).One(d.ctx, d.db)
+			UpdatedAt: omit.From(time.Now()),
+		}, im.OnConflict("sticker_id", "keyword_id").DoUpdate(im.SetExcluded("updated_at"))).One(d.ctx, d.db)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "insert sticker keyword failed")
 		}
 	}
 	return nil
