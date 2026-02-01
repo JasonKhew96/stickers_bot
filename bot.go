@@ -10,6 +10,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/inlinequery"
 	"github.com/pkg/errors"
 )
@@ -45,13 +46,18 @@ func NewBot(config *Config, db *Database) (*StickerBot, error) {
 	dispatcher.AddHandler(handlers.NewCommand("save", sb.commandSave))
 	dispatcher.AddHandler(handlers.NewCommand("remove", sb.commandRemove))
 	dispatcher.AddHandler(handlers.NewInlineQuery(inlinequery.All, sb.inlineQuery))
+
+	callback := handlers.NewCallback(callbackquery.All, sb.callbackQuery)
+	callback.AllowChannel = true
+	dispatcher.AddHandler(callback)
+
 	// dispatcher.AddHandler(handlers.NewChosenInlineResult(choseninlineresult.All, sb.choosenInlineResult))
 
 	err = updater.StartPolling(bot, &ext.PollingOpts{
 		DropPendingUpdates: true,
 		GetUpdatesOpts: &gotgbot.GetUpdatesOpts{
 			Timeout:        59,
-			AllowedUpdates: []string{"message", "inline_query", "chosen_inline_result"},
+			AllowedUpdates: []string{"message", "inline_query", "chosen_inline_result", "callback_query"},
 			RequestOpts: &gotgbot.RequestOpts{
 				Timeout: time.Second * 60,
 			},
@@ -84,6 +90,23 @@ func (sb *StickerBot) commandSave(b *gotgbot.Bot, ctx *ext.Context) error {
 		_, err := ctx.EffectiveMessage.Reply(b, "Please reply to a sticker", nil)
 		return err
 	}
+
+	_, err := msg.Copy(b, sb.config.ChannelId, &gotgbot.CopyMessageOpts{
+		ReplyMarkup: gotgbot.InlineKeyboardMarkup{InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+			{
+				{
+					Text:         "Keywords",
+					CallbackData: "get_keywords",
+				},
+			},
+		}},
+	})
+	if err != nil {
+		log.Println(err)
+		_, err := ctx.EffectiveMessage.Reply(b, "Failed to save sticker", nil)
+		return err
+	}
+
 	var fileId string
 	var stickerType string
 	if msg.Sticker != nil {
@@ -100,7 +123,7 @@ func (sb *StickerBot) commandSave(b *gotgbot.Bot, ctx *ext.Context) error {
 		fileId = msg.Video.FileId
 		stickerType = "video"
 	}
-	err := sb.db.SaveSticker(fileId, stickerType, keywords)
+	err = sb.db.SaveSticker(fileId, stickerType, keywords)
 	if err != nil {
 		log.Println(err)
 		_, err := ctx.EffectiveMessage.Reply(b, "Failed to save sticker", nil)
@@ -201,6 +224,48 @@ func (sb *StickerBot) inlineQuery(b *gotgbot.Bot, ctx *ext.Context) error {
 		return errors.New("answer inline failed")
 	}
 	return nil
+}
+
+func (sb *StickerBot) callbackQuery(b *gotgbot.Bot, ctx *ext.Context) error {
+	if ctx.CallbackQuery.Data != "get_keywords" {
+		return nil
+	}
+
+	if ctx.CallbackQuery.Message == nil {
+		return nil
+	}
+
+	var fileId string
+	msg := ctx.CallbackQuery.Message
+	if msg.Sticker != nil {
+		fileId = msg.Sticker.FileId
+	} else if msg.Animation != nil {
+		fileId = msg.Animation.FileId
+	} else if msg.Photo != nil {
+		fileId = msg.Photo[0].FileId
+	} else if msg.Video != nil {
+		fileId = msg.Video.FileId
+	}
+
+	if fileId == "" {
+		return nil
+	}
+
+	keywords, err := sb.db.GetKeywordsFromFileId(fileId)
+	if err != nil {
+		return err
+	}
+
+	var kws []string
+	for _, keyword := range keywords {
+		kws = append(kws, keyword.Keyword)
+	}
+
+	_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
+		Text:      strings.Join(kws, ", "),
+		CacheTime: 60,
+	})
+	return err
 }
 
 // func (sb *StickerBot) choosenInlineResult(b *gotgbot.Bot, ctx *ext.Context) error {

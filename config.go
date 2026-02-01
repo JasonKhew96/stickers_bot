@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	BotToken string `yaml:"bot_token"`
-	OwnerId  int64  `yaml:"owner_id"`
+	BotToken  string `yaml:"bot_token"`
+	OwnerId   int64  `yaml:"owner_id"`
+	ChannelId int64  `yaml:"channel_id"`
 }
 
 func parseConfig() (*Config, error) {
