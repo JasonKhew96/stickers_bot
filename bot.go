@@ -33,16 +33,16 @@ func NewBot(config *Config, db *Database) (*StickerBot, error) {
 		db:     db,
 	}
 
-	updater := ext.NewUpdater(&ext.UpdaterOpts{
-		Dispatcher: ext.NewDispatcher(&ext.DispatcherOpts{
-			Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
-				log.Println("an error occurred while handling update: ", err.Error())
-				return ext.DispatcherActionNoop
-			},
-			MaxRoutines: ext.DefaultMaxRoutines,
-		}),
+	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
+		Error: func(b *gotgbot.Bot, ctx *ext.Context, err error) ext.DispatcherAction {
+			log.Println("an error occurred while handling update: ", err.Error())
+			return ext.DispatcherActionNoop
+		},
+		MaxRoutines: ext.DefaultMaxRoutines,
 	})
-	dispatcher := updater.Dispatcher
+
+	updater := ext.NewUpdater(dispatcher, nil)
+
 	dispatcher.AddHandler(handlers.NewCommand("save", sb.commandSave))
 	dispatcher.AddHandler(handlers.NewCommand("remove", sb.commandRemove))
 	dispatcher.AddHandler(handlers.NewInlineQuery(inlinequery.All, sb.inlineQuery))
@@ -229,12 +229,16 @@ func (sb *StickerBot) callbackQuery(b *gotgbot.Bot, ctx *ext.Context) error {
 		return nil
 	}
 
+	msg, ok := ctx.CallbackQuery.Message.(gotgbot.Message)
+	if !ok {
+		return nil
+	}
+
 	if ctx.CallbackQuery.Message == nil {
 		return nil
 	}
 
 	var fileId string
-	msg := ctx.CallbackQuery.Message
 	if msg.Sticker != nil {
 		fileId = msg.Sticker.FileId
 	} else if msg.Animation != nil {
