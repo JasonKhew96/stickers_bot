@@ -210,6 +210,7 @@ func (sb *StickerBot) inlineQuery(b *gotgbot.Bot, ctx *ext.Context) error {
 			})
 		case "video":
 			answers = append(answers, gotgbot.InlineQueryResultCachedVideo{
+				Title:       "video",
 				Id:          strconv.FormatInt(sticker.ID, 10),
 				VideoFileId: sticker.FileID,
 			})
