@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/JasonKhew96/stickers_bot/models"
@@ -91,7 +92,7 @@ func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) er
 
 	for _, keyword := range keywords {
 		k, err := models.Keywords.Insert(&models.KeywordSetter{
-			Keyword:   omit.From(keyword),
+			Keyword:   omit.From(strings.TrimSpace(keyword)),
 			UpdatedAt: omit.From(time.Now()),
 		}, im.OnConflict("keyword").DoUpdate(im.SetExcluded("updated_at"))).One(d.ctx, d.db)
 		if err != nil {

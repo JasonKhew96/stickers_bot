@@ -79,12 +79,11 @@ func (sb *StickerBot) commandSave(b *gotgbot.Bot, ctx *ext.Context) error {
 	if userId != sb.config.OwnerId {
 		return nil
 	}
-	keywords := strings.Split(ctx.EffectiveMessage.Text, " ")
-	if len(keywords) <= 0 {
+	if len(ctx.EffectiveMessage.Text) <= 6 { // "/save "
 		_, err := ctx.EffectiveMessage.Reply(b, "Please provide keywords", nil)
 		return err
 	}
-	keywords = keywords[1:]
+	keywords := strings.Split(ctx.EffectiveMessage.Text, ",")
 	msg := ctx.EffectiveMessage.ReplyToMessage
 	if msg == nil {
 		_, err := ctx.EffectiveMessage.Reply(b, "Please reply to a sticker", nil)
