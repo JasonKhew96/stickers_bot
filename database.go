@@ -76,7 +76,7 @@ func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) er
 	}
 	if err == sql.ErrNoRows {
 		s, err = models.Stickers.Insert(&models.StickerSetter{
-			ID:          omit.From(s.ID),
+			FileID:      omit.From(fileId),
 			StickerType: omit.From(stickerType),
 			UpdatedAt:   omit.From(time.Now()),
 		}, im.OnConflict("file_id").DoUpdate(im.SetExcluded("updated_at"))).One(d.ctx, d.db)
