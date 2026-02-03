@@ -113,7 +113,13 @@ func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) er
 }
 
 func (d *Database) RemoveSticker(fileId string) error {
-	// todo: remove any keywords that are no longer used
-	_, err := models.Stickers.Delete(models.DeleteWhere.Stickers.FileID.EQ(fileId)).All(d.ctx, d.db)
-	return err
+	s, err := d.GetStickerFromFileId(fileId)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return errors.Wrap(err, "get sticker failed")
+	}
+	_, err = models.StickerKeywords.Delete(models.DeleteWhere.StickerKeywords.StickerID.EQ(s.ID)).Exec(d.ctx, d.db)
+	if err != nil {
+		return errors.Wrap(err, "delete sticker keyword failed")
+	}
+	return s.Delete(d.ctx, d.db)
 }
