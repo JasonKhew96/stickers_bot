@@ -269,6 +269,7 @@ func (sb *StickerBot) callbackQuery(b *gotgbot.Bot, ctx *ext.Context) error {
 
 	_, err = ctx.CallbackQuery.Answer(b, &gotgbot.AnswerCallbackQueryOpts{
 		Text:      strings.Join(kws, ", "),
+		ShowAlert: true,
 		CacheTime: 60,
 	})
 	return err
