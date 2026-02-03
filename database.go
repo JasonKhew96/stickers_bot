@@ -10,8 +10,6 @@ import (
 	"github.com/aarondl/opt/omit"
 	"github.com/pkg/errors"
 	"github.com/stephenafamo/bob"
-	"github.com/stephenafamo/bob/dialect/sqlite"
-	"github.com/stephenafamo/bob/dialect/sqlite/dm"
 	"github.com/stephenafamo/bob/dialect/sqlite/im"
 	"github.com/stephenafamo/bob/dialect/sqlite/sm"
 	_ "modernc.org/sqlite"
@@ -52,15 +50,16 @@ func NewDatabase() (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Database{db: bobExec, ctx: context.TODO()}, nil
+	return &Database{db: bob.Debug(bobExec), ctx: context.TODO()}, nil
 }
 
 func (d *Database) Close() {
-	d.db.Close()
+	d.oriDb.Close()
 }
 
 func (d *Database) GetKeywordsFromFileId(fileId string) (models.KeywordSlice, error) {
-	return models.Keywords.Query(sm.InnerJoin("sticker_keyword on sticker_keyword.keyword_id = keyword.id"), sm.InnerJoin("sticker on sticker.id = sticker_keyword.sticker_id"), models.SelectWhere.Stickers.FileID.EQ(fileId)).All(d.ctx, d.db)
+	return models.Keywords.Query(models.SelectJoins().StickerKeywords.InnerJoin.Sticker, models.SelectJoins().Keywords.InnerJoin.StickerKeywords, models.SelectWhere.Stickers.FileID.EQ(fileId)).All(d.ctx, d.db)
+	// return models.Keywords.Query(sm.InnerJoin("sticker_keyword on sticker_keyword.keyword_id = keyword.id"), sm.InnerJoin("sticker on sticker.id = sticker_keyword.sticker_id"), models.SelectWhere.Stickers.FileID.EQ(fileId)).All(d.ctx, d.db)
 }
 
 func (d *Database) GetStickerFromFileId(fileId string) (*models.Sticker, error) {
@@ -86,14 +85,14 @@ func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) er
 			return errors.Wrap(err, "insert sticker failed")
 		}
 	} else {
+		// DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);
+		_, err := d.db.ExecContext(d.ctx, "DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);")
+		if err != nil {
+			return errors.Wrap(err, "delete not referenced keyword failed")
+		}
 		_, err = models.StickerKeywords.Delete(models.DeleteWhere.StickerKeywords.StickerID.EQ(s.ID)).Exec(d.ctx, d.db)
 		if err != nil {
 			return errors.Wrap(err, "delete sticker keyword failed")
-		}
-		// DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);
-		_, err = sqlite.Delete(dm.From("keyword"), dm.Where(sqlite.Quote("keyword.id").NotIn(sqlite.Select(sm.From("sticker_keyword"), sm.Columns("keyword_id"))))).Exec(d.ctx, d.db)
-		if err != nil {
-			return errors.Wrap(err, "delete not referenced keyword failed")
 		}
 	}
 
@@ -134,6 +133,6 @@ func (d *Database) RemoveSticker(fileId string) error {
 		return errors.Wrap(err, "delete sticker failed")
 	}
 	// DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);
-	_, err = sqlite.Delete(dm.From("keyword"), dm.Where(sqlite.Quote("keyword.id").NotIn(sqlite.Select(sm.From("sticker_keyword"), sm.Columns("keyword_id"))))).Exec(d.ctx, d.db)
+	_, err = d.db.ExecContext(d.ctx, "DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);")
 	return errors.Wrap(err, "delete not referenced keyword failed")
 }
