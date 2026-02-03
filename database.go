@@ -92,7 +92,7 @@ func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) er
 
 	for _, keyword := range keywords {
 		k, err := models.Keywords.Insert(&models.KeywordSetter{
-			Keyword:   omit.From(strings.TrimSpace(keyword)),
+			Keyword:   omit.From(strings.ToLower(strings.TrimSpace(keyword))),
 			UpdatedAt: omit.From(time.Now()),
 		}, im.OnConflict("keyword").DoUpdate(im.SetExcluded("updated_at"))).One(d.ctx, d.db)
 		if err != nil {
