@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/JasonKhew96/stickers_bot/models"
@@ -15,14 +16,14 @@ import (
 
 /*
 CREATE TABLE IF NOT EXISTS sticker (
-    id INTEGER NOT NULL UNIQUE PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     file_id TEXT UNIQUE NOT NULL,
     sticker_type TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS keyword (
-    id INTEGER NOT NULL UNIQUE PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     keyword TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -68,14 +69,26 @@ func (d *Database) GetStickersFromKeyword(keyword string) (models.StickerSlice, 
 }
 
 func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) error {
-	s, err := models.Stickers.Insert(&models.StickerSetter{
-		FileID:      omit.From(fileId),
-		StickerType: omit.From(stickerType),
-		UpdatedAt:   omit.From(time.Now()),
-	}, im.OnConflict("file_id").DoUpdate(im.SetExcluded("updated_at"))).One(d.ctx, d.db)
-	if err != nil {
-		return errors.Wrap(err, "insert sticker failed")
+	s, err := d.GetStickerFromFileId(fileId)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return errors.Wrap(err, "get sticker failed")
 	}
+	if err == sql.ErrNoRows {
+		s, err = models.Stickers.Insert(&models.StickerSetter{
+			ID:          omit.From(s.ID),
+			StickerType: omit.From(stickerType),
+			UpdatedAt:   omit.From(time.Now()),
+		}, im.OnConflict("file_id").DoUpdate(im.SetExcluded("updated_at"))).One(d.ctx, d.db)
+		if err != nil {
+			return errors.Wrap(err, "insert sticker failed")
+		}
+	} else {
+		_, err = models.StickerKeywords.Delete(models.DeleteWhere.StickerKeywords.StickerID.EQ(s.ID)).Exec(d.ctx, d.db)
+		if err != nil {
+			return errors.Wrap(err, "delete sticker keyword failed")
+		}
+	}
+
 	for _, keyword := range keywords {
 		k, err := models.Keywords.Insert(&models.KeywordSetter{
 			Keyword:   omit.From(keyword),

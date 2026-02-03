@@ -43,24 +43,6 @@ func TestKeywordUniqueConstraintErrors(t *testing.T) {
 			},
 		},
 		{
-			name:        "ErrUniqueSqliteAutoindexKeyword2",
-			expectedErr: KeywordErrors.ErrUniqueSqliteAutoindexKeyword2,
-			conflictMods: func(ctx context.Context, t *testing.T, exec bob.Executor, obj *models.Keyword) factory.KeywordModSlice {
-				shouldUpdate := false
-				updateMods := make(factory.KeywordModSlice, 0, 1)
-
-				if shouldUpdate {
-					if err := obj.Update(ctx, exec, f.NewKeywordWithContext(ctx, updateMods...).BuildSetter()); err != nil {
-						t.Fatalf("Error updating object: %v", err)
-					}
-				}
-
-				return factory.KeywordModSlice{
-					factory.KeywordMods.Keyword(obj.Keyword),
-				}
-			},
-		},
-		{
 			name:        "ErrUniqueSqliteAutoindexKeyword1",
 			expectedErr: KeywordErrors.ErrUniqueSqliteAutoindexKeyword1,
 			conflictMods: func(ctx context.Context, t *testing.T, exec bob.Executor, obj *models.Keyword) factory.KeywordModSlice {
@@ -74,7 +56,7 @@ func TestKeywordUniqueConstraintErrors(t *testing.T) {
 				}
 
 				return factory.KeywordModSlice{
-					factory.KeywordMods.ID(obj.ID),
+					factory.KeywordMods.Keyword(obj.Keyword),
 				}
 			},
 		},

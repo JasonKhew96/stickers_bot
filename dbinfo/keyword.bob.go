@@ -67,26 +67,12 @@ var Keywords = Table[
 			Comment: "",
 			Partial: false,
 		},
-		SqliteAutoindexKeyword2: index{
-			Type: "u",
-			Name: "sqlite_autoindex_keyword_2",
-			Columns: []indexColumn{
-				{
-					Name:         "keyword",
-					Desc:         null.FromCond(false, true),
-					IsExpression: false,
-				},
-			},
-			Unique:  true,
-			Comment: "",
-			Partial: false,
-		},
 		SqliteAutoindexKeyword1: index{
 			Type: "u",
 			Name: "sqlite_autoindex_keyword_1",
 			Columns: []indexColumn{
 				{
-					Name:         "id",
+					Name:         "keyword",
 					Desc:         null.FromCond(false, true),
 					IsExpression: false,
 				},
@@ -103,14 +89,9 @@ var Keywords = Table[
 	},
 
 	Uniques: keywordUniques{
-		SqliteAutoindexKeyword2: constraint{
-			Name:    "sqlite_autoindex_keyword_2",
-			Columns: []string{"keyword"},
-			Comment: "",
-		},
 		SqliteAutoindexKeyword1: constraint{
 			Name:    "sqlite_autoindex_keyword_1",
-			Columns: []string{"id"},
+			Columns: []string{"keyword"},
 			Comment: "",
 		},
 	},
@@ -133,13 +114,12 @@ func (c keywordColumns) AsSlice() []column {
 
 type keywordIndexes struct {
 	PKMainKeyword           index
-	SqliteAutoindexKeyword2 index
 	SqliteAutoindexKeyword1 index
 }
 
 func (i keywordIndexes) AsSlice() []index {
 	return []index{
-		i.PKMainKeyword, i.SqliteAutoindexKeyword2, i.SqliteAutoindexKeyword1,
+		i.PKMainKeyword, i.SqliteAutoindexKeyword1,
 	}
 }
 
@@ -150,13 +130,12 @@ func (f keywordForeignKeys) AsSlice() []foreignKey {
 }
 
 type keywordUniques struct {
-	SqliteAutoindexKeyword2 constraint
 	SqliteAutoindexKeyword1 constraint
 }
 
 func (u keywordUniques) AsSlice() []constraint {
 	return []constraint{
-		u.SqliteAutoindexKeyword2, u.SqliteAutoindexKeyword1,
+		u.SqliteAutoindexKeyword1,
 	}
 }
 

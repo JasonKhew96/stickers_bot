@@ -11,25 +11,16 @@ var KeywordErrors = &keywordErrors{
 		s:       "pk_main_keyword",
 	},
 
-	ErrUniqueSqliteAutoindexKeyword2: &UniqueConstraintError{
-		schema:  "",
-		table:   "keyword",
-		columns: []string{"keyword"},
-		s:       "sqlite_autoindex_keyword_2",
-	},
-
 	ErrUniqueSqliteAutoindexKeyword1: &UniqueConstraintError{
 		schema:  "",
 		table:   "keyword",
-		columns: []string{"id"},
+		columns: []string{"keyword"},
 		s:       "sqlite_autoindex_keyword_1",
 	},
 }
 
 type keywordErrors struct {
 	ErrUniquePkMainKeyword *UniqueConstraintError
-
-	ErrUniqueSqliteAutoindexKeyword2 *UniqueConstraintError
 
 	ErrUniqueSqliteAutoindexKeyword1 *UniqueConstraintError
 }
