@@ -83,7 +83,7 @@ func (sb *StickerBot) commandSave(b *gotgbot.Bot, ctx *ext.Context) error {
 		_, err := ctx.EffectiveMessage.Reply(b, "Please provide keywords", nil)
 		return err
 	}
-	keywords := strings.Split(ctx.EffectiveMessage.Text, ",")
+	keywords := strings.Split(ctx.EffectiveMessage.Text[6:], ",")
 	msg := ctx.EffectiveMessage.ReplyToMessage
 	if msg == nil {
 		_, err := ctx.EffectiveMessage.Reply(b, "Please reply to a sticker", nil)
