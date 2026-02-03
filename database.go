@@ -10,6 +10,8 @@ import (
 	"github.com/aarondl/opt/omit"
 	"github.com/pkg/errors"
 	"github.com/stephenafamo/bob"
+	"github.com/stephenafamo/bob/dialect/sqlite"
+	"github.com/stephenafamo/bob/dialect/sqlite/dm"
 	"github.com/stephenafamo/bob/dialect/sqlite/im"
 	"github.com/stephenafamo/bob/dialect/sqlite/sm"
 	_ "modernc.org/sqlite"
@@ -88,6 +90,11 @@ func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) er
 		if err != nil {
 			return errors.Wrap(err, "delete sticker keyword failed")
 		}
+		// DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);
+		_, err = sqlite.Delete(dm.From("keyword"), dm.Where(sqlite.Quote("keyword.id").NotIn(sqlite.Select(sm.From("sticker_keyword"), sm.Columns("keyword_id"))))).Exec(d.ctx, d.db)
+		if err != nil {
+			return errors.Wrap(err, "delete not referenced keyword failed")
+		}
 	}
 
 	for _, keyword := range keywords {
@@ -122,5 +129,11 @@ func (d *Database) RemoveSticker(fileId string) error {
 	if err != nil {
 		return errors.Wrap(err, "delete sticker keyword failed")
 	}
-	return s.Delete(d.ctx, d.db)
+	err = s.Delete(d.ctx, d.db)
+	if err != nil {
+		return errors.Wrap(err, "delete sticker failed")
+	}
+	// DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);
+	_, err = sqlite.Delete(dm.From("keyword"), dm.Where(sqlite.Quote("keyword.id").NotIn(sqlite.Select(sm.From("sticker_keyword"), sm.Columns("keyword_id"))))).Exec(d.ctx, d.db)
+	return errors.Wrap(err, "delete not referenced keyword failed")
 }
