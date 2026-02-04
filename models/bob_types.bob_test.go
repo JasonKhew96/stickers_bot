@@ -11,6 +11,9 @@ var testDB bob.Transactor[bob.Tx]
 // Make sure the type Keyword runs hooks after queries
 var _ bob.HookableType = &Keyword{}
 
+// Make sure the type RecentSticker runs hooks after queries
+var _ bob.HookableType = &RecentSticker{}
+
 // Make sure the type Sticker runs hooks after queries
 var _ bob.HookableType = &Sticker{}
 

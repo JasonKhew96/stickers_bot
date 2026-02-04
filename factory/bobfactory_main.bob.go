@@ -8,10 +8,12 @@ import (
 	"time"
 
 	models "github.com/JasonKhew96/stickers_bot/models"
+	"github.com/aarondl/opt/null"
 )
 
 type Factory struct {
 	baseKeywordMods        KeywordModSlice
+	baseRecentStickerMods  RecentStickerModSlice
 	baseStickerMods        StickerModSlice
 	baseStickerKeywordMods StickerKeywordModSlice
 }
@@ -48,6 +50,33 @@ func (f *Factory) FromExistingKeyword(m *models.Keyword) *KeywordTemplate {
 	if len(m.R.StickerKeywords) > 0 {
 		KeywordMods.AddExistingStickerKeywords(m.R.StickerKeywords...).Apply(ctx, o)
 	}
+
+	return o
+}
+
+func (f *Factory) NewRecentSticker(mods ...RecentStickerMod) *RecentStickerTemplate {
+	return f.NewRecentStickerWithContext(context.Background(), mods...)
+}
+
+func (f *Factory) NewRecentStickerWithContext(ctx context.Context, mods ...RecentStickerMod) *RecentStickerTemplate {
+	o := &RecentStickerTemplate{f: f}
+
+	if f != nil {
+		f.baseRecentStickerMods.Apply(ctx, o)
+	}
+
+	RecentStickerModSlice(mods).Apply(ctx, o)
+
+	return o
+}
+
+func (f *Factory) FromExistingRecentSticker(m *models.RecentSticker) *RecentStickerTemplate {
+	o := &RecentStickerTemplate{f: f, alreadyPersisted: true}
+
+	o.ID = func() int64 { return m.ID }
+	o.Recents = func() null.Val[string] { return m.Recents }
+	o.CreatedAt = func() time.Time { return m.CreatedAt }
+	o.UpdatedAt = func() time.Time { return m.UpdatedAt }
 
 	return o
 }
@@ -126,6 +155,14 @@ func (f *Factory) ClearBaseKeywordMods() {
 
 func (f *Factory) AddBaseKeywordMod(mods ...KeywordMod) {
 	f.baseKeywordMods = append(f.baseKeywordMods, mods...)
+}
+
+func (f *Factory) ClearBaseRecentStickerMods() {
+	f.baseRecentStickerMods = nil
+}
+
+func (f *Factory) AddBaseRecentStickerMod(mods ...RecentStickerMod) {
+	f.baseRecentStickerMods = append(f.baseRecentStickerMods, mods...)
 }
 
 func (f *Factory) ClearBaseStickerMods() {

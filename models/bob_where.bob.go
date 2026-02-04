@@ -18,15 +18,18 @@ var (
 
 func Where[Q sqlite.Filterable]() struct {
 	Keywords        keywordWhere[Q]
+	RecentStickers  recentStickerWhere[Q]
 	Stickers        stickerWhere[Q]
 	StickerKeywords stickerKeywordWhere[Q]
 } {
 	return struct {
 		Keywords        keywordWhere[Q]
+		RecentStickers  recentStickerWhere[Q]
 		Stickers        stickerWhere[Q]
 		StickerKeywords stickerKeywordWhere[Q]
 	}{
 		Keywords:        buildKeywordWhere[Q](Keywords.Columns),
+		RecentStickers:  buildRecentStickerWhere[Q](RecentStickers.Columns),
 		Stickers:        buildStickerWhere[Q](Stickers.Columns),
 		StickerKeywords: buildStickerKeywordWhere[Q](StickerKeywords.Columns),
 	}

@@ -3,14 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/JasonKhew96/stickers_bot/models"
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/callbackquery"
+	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/choseninlineresult"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext/handlers/filters/inlinequery"
 	"github.com/pkg/errors"
 )
@@ -51,7 +54,7 @@ func NewBot(config *Config, db *Database) (*StickerBot, error) {
 	callback.AllowChannel = true
 	dispatcher.AddHandler(callback)
 
-	// dispatcher.AddHandler(handlers.NewChosenInlineResult(choseninlineresult.All, sb.choosenInlineResult))
+	dispatcher.AddHandler(handlers.NewChosenInlineResult(choseninlineresult.All, sb.choosenInlineResult))
 
 	err = updater.StartPolling(bot, &ext.PollingOpts{
 		DropPendingUpdates: true,
@@ -169,20 +172,21 @@ func (sb *StickerBot) commandRemove(b *gotgbot.Bot, ctx *ext.Context) error {
 }
 
 func (sb *StickerBot) inlineQuery(b *gotgbot.Bot, ctx *ext.Context) error {
+	userId := ctx.EffectiveSender.Id()
 	keyword := ctx.InlineQuery.Query
+
+	var stickers models.StickerSlice
+	var err error
 	if keyword == "" {
-		ok, err := ctx.InlineQuery.Answer(b, nil, nil)
+		stickers, err = sb.db.GetStickersFromIds(sb.db.GetRecents(userId))
 		if err != nil {
 			return err
 		}
-		if !ok {
-			return errors.New("answer inline failed")
+	} else {
+		stickers, err = sb.db.GetStickersFromKeyword(keyword)
+		if err != nil {
+			return err
 		}
-		return nil
-	}
-	stickers, err := sb.db.GetStickersFromKeyword(keyword)
-	if err != nil {
-		return err
 	}
 	var answers []gotgbot.InlineQueryResult
 	for _, sticker := range stickers {
@@ -216,6 +220,7 @@ func (sb *StickerBot) inlineQuery(b *gotgbot.Bot, ctx *ext.Context) error {
 		}
 	}
 	ok, err := ctx.InlineQuery.Answer(b, answers, &gotgbot.AnswerInlineQueryOpts{
+		CacheTime:  60,
 		IsPersonal: true,
 	})
 	if err != nil {
@@ -274,11 +279,17 @@ func (sb *StickerBot) callbackQuery(b *gotgbot.Bot, ctx *ext.Context) error {
 	return err
 }
 
-// func (sb *StickerBot) choosenInlineResult(b *gotgbot.Bot, ctx *ext.Context) error {
-// 	resultId := ctx.ChosenInlineResult.ResultId
-// 	id, err := strconv.ParseInt(resultId, 10, 64)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return sb.db.UpdateStickerUsage(id)
-// }
+func (sb *StickerBot) choosenInlineResult(b *gotgbot.Bot, ctx *ext.Context) error {
+	resultId := ctx.ChosenInlineResult.ResultId
+	id, err := strconv.ParseInt(resultId, 10, 64)
+	if err != nil {
+		return err
+	}
+	userId := ctx.EffectiveSender.Id()
+	recents := sb.db.GetRecents(userId)
+	if slices.Contains(recents, id) {
+		return nil
+	}
+	recents = slices.Insert(recents, 0, id)
+	return sb.db.UpdateRecents(userId, recents)
+}

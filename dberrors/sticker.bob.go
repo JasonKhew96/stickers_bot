@@ -11,16 +11,25 @@ var StickerErrors = &stickerErrors{
 		s:       "pk_main_sticker",
 	},
 
-	ErrUniqueSqliteAutoindexSticker1: &UniqueConstraintError{
+	ErrUniqueSqliteAutoindexSticker2: &UniqueConstraintError{
 		schema:  "",
 		table:   "sticker",
 		columns: []string{"file_id"},
+		s:       "sqlite_autoindex_sticker_2",
+	},
+
+	ErrUniqueSqliteAutoindexSticker1: &UniqueConstraintError{
+		schema:  "",
+		table:   "sticker",
+		columns: []string{"id"},
 		s:       "sqlite_autoindex_sticker_1",
 	},
 }
 
 type stickerErrors struct {
 	ErrUniquePkMainSticker *UniqueConstraintError
+
+	ErrUniqueSqliteAutoindexSticker2 *UniqueConstraintError
 
 	ErrUniqueSqliteAutoindexSticker1 *UniqueConstraintError
 }

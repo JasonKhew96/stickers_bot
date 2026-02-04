@@ -12,6 +12,9 @@ var (
 	keywordWithParentsCascadingCtx = newContextual[bool]("keywordWithParentsCascading")
 	keywordRelStickerKeywordsCtx   = newContextual[bool]("keyword.sticker_keyword.fk_sticker_keyword_0")
 
+	// Relationship Contexts for recent_sticker
+	recentStickerWithParentsCascadingCtx = newContextual[bool]("recentStickerWithParentsCascading")
+
 	// Relationship Contexts for sticker
 	stickerWithParentsCascadingCtx = newContextual[bool]("stickerWithParentsCascading")
 	stickerRelStickerKeywordsCtx   = newContextual[bool]("sticker.sticker_keyword.fk_sticker_keyword_1")

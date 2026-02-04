@@ -76,12 +76,26 @@ var Stickers = Table[
 			Comment: "",
 			Partial: false,
 		},
+		SqliteAutoindexSticker2: index{
+			Type: "u",
+			Name: "sqlite_autoindex_sticker_2",
+			Columns: []indexColumn{
+				{
+					Name:         "file_id",
+					Desc:         null.FromCond(false, true),
+					IsExpression: false,
+				},
+			},
+			Unique:  true,
+			Comment: "",
+			Partial: false,
+		},
 		SqliteAutoindexSticker1: index{
 			Type: "u",
 			Name: "sqlite_autoindex_sticker_1",
 			Columns: []indexColumn{
 				{
-					Name:         "file_id",
+					Name:         "id",
 					Desc:         null.FromCond(false, true),
 					IsExpression: false,
 				},
@@ -98,9 +112,14 @@ var Stickers = Table[
 	},
 
 	Uniques: stickerUniques{
+		SqliteAutoindexSticker2: constraint{
+			Name:    "sqlite_autoindex_sticker_2",
+			Columns: []string{"file_id"},
+			Comment: "",
+		},
 		SqliteAutoindexSticker1: constraint{
 			Name:    "sqlite_autoindex_sticker_1",
-			Columns: []string{"file_id"},
+			Columns: []string{"id"},
 			Comment: "",
 		},
 	},
@@ -124,12 +143,13 @@ func (c stickerColumns) AsSlice() []column {
 
 type stickerIndexes struct {
 	PKMainSticker           index
+	SqliteAutoindexSticker2 index
 	SqliteAutoindexSticker1 index
 }
 
 func (i stickerIndexes) AsSlice() []index {
 	return []index{
-		i.PKMainSticker, i.SqliteAutoindexSticker1,
+		i.PKMainSticker, i.SqliteAutoindexSticker2, i.SqliteAutoindexSticker1,
 	}
 }
 
@@ -140,12 +160,13 @@ func (f stickerForeignKeys) AsSlice() []foreignKey {
 }
 
 type stickerUniques struct {
+	SqliteAutoindexSticker2 constraint
 	SqliteAutoindexSticker1 constraint
 }
 
 func (u stickerUniques) AsSlice() []constraint {
 	return []constraint{
-		u.SqliteAutoindexSticker1,
+		u.SqliteAutoindexSticker2, u.SqliteAutoindexSticker1,
 	}
 }
 

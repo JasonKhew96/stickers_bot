@@ -3,13 +3,19 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/JasonKhew96/stickers_bot/models"
 	"github.com/aarondl/opt/omit"
+	"github.com/aarondl/opt/omitnull"
 	"github.com/pkg/errors"
 	"github.com/stephenafamo/bob"
+	"github.com/stephenafamo/bob/dialect/sqlite"
+	"github.com/stephenafamo/bob/dialect/sqlite/dialect"
 	"github.com/stephenafamo/bob/dialect/sqlite/im"
 	"github.com/stephenafamo/bob/dialect/sqlite/sm"
 	_ "modernc.org/sqlite"
@@ -38,11 +44,18 @@ CREATE TABLE IF NOT EXISTS sticker_keyword (
     FOREIGN KEY (sticker_id) REFERENCES sticker (id) ON DELETE CASCADE,
     FOREIGN KEY (keyword_id) REFERENCES keyword (id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS recent_sticker (
+	id INTEGER NOT NULL PRIMARY KEY,
+	recents TEXT,
+	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 */
 
 type Database struct {
-	db  bob.DB
-	ctx context.Context
+	oriDb bob.DB
+	db    bob.Executor
+	ctx   context.Context
 }
 
 func NewDatabase() (*Database, error) {
@@ -68,6 +81,19 @@ func (d *Database) GetStickerFromFileId(fileId string) (*models.Sticker, error) 
 
 func (d *Database) GetStickersFromKeyword(keyword string) (models.StickerSlice, error) {
 	return models.Stickers.Query(sm.InnerJoin("sticker_keyword on sticker_keyword.sticker_id = sticker.id"), sm.InnerJoin("keyword on keyword.id = sticker_keyword.keyword_id"), models.SelectWhere.Keywords.Keyword.EQ(keyword), sm.OrderBy("updated_at DESC"), sm.Limit(50)).All(d.ctx, d.db)
+}
+
+func (d *Database) GetStickersFromIds(ids []int64) (models.StickerSlice, error) {
+	exp := "CASE id"
+	for i, id := range ids {
+		exp += fmt.Sprintf(" WHEN %d THEN %d", id, i+1)
+	}
+	exp += " END"
+	queries := []bob.Mod[*dialect.SelectQuery]{models.SelectWhere.Stickers.ID.In(ids...)}
+	if len(ids) > 0 {
+		queries = append(queries, sm.OrderBy(sqlite.Raw(exp)))
+	}
+	return models.Stickers.Query(queries...).All(d.ctx, d.db)
 }
 
 func (d *Database) SaveSticker(fileId, stickerType string, keywords []string) error {
@@ -135,4 +161,34 @@ func (d *Database) RemoveSticker(fileId string) error {
 	// DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);
 	_, err = d.db.ExecContext(d.ctx, "DELETE FROM keyword WHERE keyword.id NOT IN (SELECT keyword_id FROM sticker_keyword);")
 	return errors.Wrap(err, "delete not referenced keyword failed")
+}
+
+func (d *Database) GetRecents(userId int64) []int64 {
+	r, err := models.RecentStickers.Query(models.SelectWhere.RecentStickers.ID.EQ(userId)).One(d.ctx, d.db)
+	if err != nil {
+		return nil
+	}
+	splits := strings.Split(r.Recents.GetOr(""), ",")
+	recents := []int64{}
+	for _, s := range splits {
+		i, err := strconv.ParseInt(s, 10, 64)
+		if err == nil {
+			recents = append(recents, i)
+		}
+	}
+	return recents
+}
+
+func (d *Database) UpdateRecents(userId int64, recents []int64) error {
+	rs := []string{}
+	max := math.Min(float64(len(recents)), 50)
+	for i := range int(max) {
+		rs = append(rs, strconv.FormatInt(recents[i], 10))
+	}
+	_, err := models.RecentStickers.Insert(&models.RecentStickerSetter{
+		ID:        omit.From(userId),
+		Recents:   omitnull.From(strings.Join(rs, ",")),
+		UpdatedAt: omit.From(time.Now()),
+	}, im.OnConflict("id").DoUpdate(im.SetExcluded("updated_at", "recents"))).One(d.ctx, d.db)
+	return errors.Wrap(err, "update recents failed")
 }

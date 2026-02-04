@@ -43,6 +43,24 @@ func TestStickerUniqueConstraintErrors(t *testing.T) {
 			},
 		},
 		{
+			name:        "ErrUniqueSqliteAutoindexSticker2",
+			expectedErr: StickerErrors.ErrUniqueSqliteAutoindexSticker2,
+			conflictMods: func(ctx context.Context, t *testing.T, exec bob.Executor, obj *models.Sticker) factory.StickerModSlice {
+				shouldUpdate := false
+				updateMods := make(factory.StickerModSlice, 0, 1)
+
+				if shouldUpdate {
+					if err := obj.Update(ctx, exec, f.NewStickerWithContext(ctx, updateMods...).BuildSetter()); err != nil {
+						t.Fatalf("Error updating object: %v", err)
+					}
+				}
+
+				return factory.StickerModSlice{
+					factory.StickerMods.FileID(obj.FileID),
+				}
+			},
+		},
+		{
 			name:        "ErrUniqueSqliteAutoindexSticker1",
 			expectedErr: StickerErrors.ErrUniqueSqliteAutoindexSticker1,
 			conflictMods: func(ctx context.Context, t *testing.T, exec bob.Executor, obj *models.Sticker) factory.StickerModSlice {
@@ -56,7 +74,7 @@ func TestStickerUniqueConstraintErrors(t *testing.T) {
 				}
 
 				return factory.StickerModSlice{
-					factory.StickerMods.FileID(obj.FileID),
+					factory.StickerMods.ID(obj.ID),
 				}
 			},
 		},
